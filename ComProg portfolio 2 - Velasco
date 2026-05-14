@@ -1,0 +1,133 @@
+print("--- Welcome to the Dungeon---")
+
+# --- 1. CLASS SELECTION ---
+print("1. Warrior | 2. Mage | 3. Rogue")
+try:
+    role_choice = int(input("Select Class: "))
+except:
+    role_choice = 1
+
+if role_choice == 1:
+    role, hp_mult, stat = "Warrior", 9, 12
+elif role_choice == 2:
+    role, hp_mult, stat = "Mage", 5, 15
+else:
+    role, hp_mult, stat = "Rogue", 7, 13
+
+# --- 2. STAT ROLLING ---
+print("\nRoll your physical D6!")
+try:
+    hp = int(input("Roll for HP: ")) * hp_mult
+    mana = int(input("Roll for Mana: "))
+except:
+    hp, mana = 35, 3
+
+boss_hp = 60
+bleed_timer = 0
+bleed_val = 0
+armor_broken = False
+boss_stunned = False
+
+print(f"\n--- {role} vs VOID BEHEMOTH (60 HP) ---")
+print(f"Stats: {hp} HP | {mana} Mana | {stat} Base Stat")
+
+# --- ROUND 1: PLAYER ---
+print(f"\n[ ROUND 1 ] Boss: {boss_hp} | You: {hp}")
+print("1. Attack | 2. Skill (2 Mana)")
+act1 = input("Choice: ")
+
+damage = 0
+if act1 == "2" and mana >= 2:
+    mana = mana - 2
+    roll = int(input("Skill Roll (1-6): "))
+    if role == "Warrior":
+        damage = stat * 2 # Buffed
+        armor_broken = True
+        print("ARMOR BREAKER! Boss takes 50% more damage next turn.")
+    elif role == "Mage":
+        damage = stat * 2.2 # Buffed
+        if roll >= 5:
+            boss_stunned = True
+            print("LIGHTNING BOLT! Boss is STUNNED.")
+    else: # Rogue
+        damage = stat * 2 # Buffed
+        bleed_timer = 3
+        bleed_val = damage * 0.3 # Buffed bleed
+        print(f"BACKSTAB! Bleed applied ({bleed_val}/turn).")
+else:
+    # Basic attack: Stat + (Roll * 2.5) for better scaling
+    damage = stat + (int(input("Atk Roll: ")) * 2.5)
+
+boss_hp = boss_hp - damage
+print(f"You dealt {damage} damage.")
+
+# --- BOSS TURN 1 ---
+if boss_hp > 0:
+    if bleed_timer > 0:
+        boss_hp, bleed_timer = boss_hp - bleed_val, bleed_timer - 1
+        print(f"Bleed deals {bleed_val}. Boss HP: {boss_hp}")
+
+    if boss_stunned:
+        print("The Boss is stunned and skips his turn!")
+        boss_stunned = False
+    else:
+        dodge = int(input("Boss attacks! Dodge Roll: "))
+        # Boss damage remains threatening
+        hp = hp - (25 if dodge < 4 else 5)
+        print(f"Your HP: {hp}")
+
+    # --- ROUND 2: PLAYER ---
+    if hp > 0 and boss_hp > 0:
+        print(f"\n[ ROUND 2 ] Boss: {boss_hp} | You: {hp}")
+        act2 = input("1. Attack | 2. Skill: ")
+        
+        damage = 0
+        if act2 == "2" and mana >= 2:
+            mana = mana - 2
+            roll = int(input("Skill Roll: "))
+            if role == "Warrior": damage, armor_broken = stat * 2, True
+            elif role == "Mage":
+                damage = stat * 2.2
+                if roll >= 5: boss_stunned = True
+            else: damage, bleed_timer, bleed_val = stat * 2, 3, (stat * 2 * 0.3)
+        else:
+            damage = stat + (int(input("Atk Roll: ")) * 2.5)
+
+        # Apply Warrior Buff if triggered in Round 1
+        if armor_broken:
+            damage = damage * 1.5
+            armor_broken = False
+            print("Armor Breaker bonus applied!")
+
+        boss_hp = boss_hp - damage
+        print(f"You dealt {damage} damage.")
+
+        # --- BOSS TURN 2 ---
+        if boss_hp > 0:
+            if bleed_timer > 0:
+                boss_hp, bleed_timer = boss_hp - bleed_val, bleed_timer - 1
+                print(f"Bleed deals {bleed_val}. Boss HP: {boss_hp}")
+
+            if boss_stunned:
+                print("Boss is stunned!")
+                boss_stunned = False
+            else:
+                dodge = int(input("Boss attacks! Dodge Roll: "))
+                hp = hp - (25 if dodge < 4 else 5)
+                print(f"Your HP: {hp}")
+            
+            # --- FINAL CHECK ---
+            if hp <= 0:
+                print("\nDEFEAT: You were crushed.")
+            elif boss_hp <= 0:
+                print("\nVICTORY: The Behemoth falls!")
+            else: 
+                print(f"\nSTALEMATE: You both retreat. Boss HP: {boss_hp}")
+        else:
+            print("\nVICTORY: Boss defeated!")
+    else:
+        print("\nGAME OVER.")
+else:
+    print("\nVICTORY: Boss defeated!")
+
+print("Finis")
