@@ -1,0 +1,43 @@
+days_of_the_week = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+
+starting_balance = float(input("Enter your starting money for the week: "))
+remaining_money = starting_balance
+
+start_day = input("Enter the starting day of the week (e.g., Monday): ").strip().lower()
+day_index = days_of_the_week.index(start_day)
+
+while True:
+    current_day = days_of_the_week[day_index]
+    print(f"\n--- Logging Expenses for {current_day.capitalize()} ---")
+    print(f"Money available at start of day: {remaining_money}")
+    
+    daily_sum = 0
+    
+    while True:
+        expense_input = input("Enter an expense made today, type done if no more ").strip().lower()
+        
+        if expense_input == 'done':
+            break
+            
+        amount = float(expense_input)
+        
+        if amount < 0:
+            print("Invalid amount! Expenses cannot be negative. Skipping...")
+            continue
+            
+        daily_sum = daily_sum + amount
+        
+    remaining_money = remaining_money - daily_sum
+    print(f"Total expenses for {current_day.capitalize()}: {daily_sum}")
+    print(f"Remaining money after {current_day.capitalize()}: {remaining_money}")
+    
+    next_action = input("\nMove to the next day? (type 'yes' to continue, 'done' to quit tracker): ").strip().lower()
+    if next_action == 'done':
+        break
+        
+    day_index = (day_index + 1) % 7
+
+print("\n--- Final Summary ---")
+print(f"Starting Balance: {starting_balance}")
+print(f"Ending Balance: {remaining_money}")
+print("Thank you for using the tracker!")
