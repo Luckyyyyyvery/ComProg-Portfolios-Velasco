@@ -1,0 +1,280 @@
+def select_class():
+    print("1. Warrior | 2. Mage | 3. Rogue")
+    try:
+        role_choice = int(input("Select Class: "))
+    except ValueError:
+        role_choice = 1
+
+    if role_choice == 1:
+        return "Warrior", 9, 12
+    elif role_choice == 2:
+        return "Mage", 5, 15
+    else:
+        return "Rogue", 7, 13
+
+def roll_stats(hp_mult):
+    print("\nRoll your physical D6!")
+    try:
+        hp = int(input("Roll for HP: ")) * hp_mult
+        mana = int(input("Roll for Mana: "))
+    except ValueError:
+        hp, mana = 35, 3
+    return hp, mana
+
+def handle_level_up(role, stat, max_hp, mana, hp_mult, atk_bonus, dodge_bonus, skill_unlocked, skill_upgraded):
+    print("\n✨ LEVEL UP! You gained enough XP! ✨")
+    print("Choose your reward:")
+    print("1. Improve Stats (+2 Attack Rolls & Class Core Bonus)")
+    print("2. Boost Max HP (+15) & Restore full health")
+    if not skill_unlocked:
+        print("3. Unlock Ultimate Skill (Costs 3 Mana)")
+    elif not skill_upgraded:
+        print("3. Upgrade Ultimate Skill (Increase power/effects)")
+    
+    choice = input("Choice: ").strip()
+    
+    if choice == "1":
+        atk_bonus += 2
+        print(f"\n+2 added to all future Attack Rolls.")
+        
+        if role == "Warrior":
+            hp_gain = 2 * hp_mult
+            max_hp += hp_gain
+            print(f"Warrior Bonus: Added +2 to your initial HP roll (+{hp_gain} Max HP)!")
+        elif role == "Mage":
+            mana += 2
+            print(f"Mage Bonus: Gained +2 Mana! Current Mana: {mana}")
+        else: # Rogue
+            dodge_bonus += 2
+            print(f"Rogue Bonus: Your dodge rolls now get a permanent +2 modifier!")
+            
+    elif choice == "2":
+        max_hp += 15
+        print(f"Max HP increased to {max_hp}!")
+    elif choice == "3" and not skill_unlocked:
+        skill_unlocked = True
+        print(f"Ultimate Skill UNLOCKED!")
+    elif choice == "3" and skill_unlocked and not skill_upgraded:
+        skill_upgraded = True
+        print(f"Ultimate Skill UPGRADED!")
+    else:
+        atk_bonus += 2
+        print(f"Invalid choice. Defaulted to standard stat improvement.")
+        if role == "Warrior":
+            max_hp += (2 * hp_mult)
+        elif role == "Mage":
+            mana += 2
+        else:
+            dodge_bonus += 2
+        
+    return stat, max_hp, mana, atk_bonus, dodge_bonus, skill_unlocked, skill_upgraded
+
+def execute_player_turn(role, stat, mana, armor_broken, atk_bonus, skill_unlocked, skill_upgraded):
+    print("\n" + "-"*15 + " YOUR TURN " + "-"*15)
+    print("1. Basic Attack")
+    print("2. Class Skill (2 Mana)")
+    if skill_unlocked:
+        # Chapter 6: String Library Method invocation (.upper()) to dynamically build menu text strings
+        ult_name = "OBLITERATE" if role == "Warrior" else "DOOM" if role == "Mage" else "QUICK DEATH"
+        print(f"3. {ult_name.upper()} (3 Mana)")
+    print("4. FLEE (Run from Dungeon)")
+        
+    choice = input("Choice: ").strip()
+    
+    damage = 0
+    enemy_stunned = False
+    bleed_timer = 0
+    bleed_val = 0
+    fled = False
+
+    if choice == "4" or choice.lower() == "flee":
+        fled = True
+        return damage, mana, armor_broken, enemy_stunned, bleed_timer, bleed_val, fled
+
+    # 3. Ultimate Skill
+    if choice == "3" and skill_unlocked and mana >= 3:
+        mana -= 3
+        multiplier = 4.0 if skill_upgraded else 3.0
+        damage = stat * multiplier
+        
+        if role == "Warrior":
+            armor_broken = True
+            print(f"💥 OBLITERATE! Dealt {damage} damage and completely shattered armor!")
+        elif role == "Mage":
+            enemy_stunned = True
+            print(f"🔮 DOOM! Dealt {damage} damage and guaranteed STUN!")
+        else: # Rogue
+            bleed_timer = 4
+            bleed_val = damage * (0.5 if skill_upgraded else 0.4)
+            print(f"💀 QUICK DEATH! Dealt {damage} damage and fatal bleed applied ({bleed_val}/turn)!")
+
+    # 2. Class Skill
+    elif choice == "2" and mana >= 2:
+        mana -= 2
+        try:
+            roll = int(input("Skill Roll (1-6): "))
+        except ValueError:
+            roll = 1
+
+        if role == "Warrior":
+            damage = stat * 2
+            armor_broken = True
+            print("ARMOR BREAKER! Enemy takes 50% more damage next turn.")
+        elif role == "Mage":
+            damage = stat * 2.2
+            stun_chance = 4 if skill_upgraded else 5
+            if roll >= stun_chance:
+                enemy_stunned = True
+                print("LIGHTNING BOLT! Enemy is STUNNED.")
+        else: # Rogue
+            damage = stat * 2
+            bleed_timer = 3
+            bleed_val = damage * (0.4 if skill_upgraded else 0.3)
+            print(f"BACKSTAB! Bleed applied ({bleed_val}/turn).")
+            
+    # 1. Basic Attack
+    else:
+        try:
+            atk_roll = int(input("Atk Roll: "))
+        except ValueError:
+            atk_roll = 1
+        
+        total_roll = atk_roll + atk_bonus
+        if atk_bonus > 0:
+            print(f"Attack Roll: {atk_roll} (+{atk_bonus} Level Bonus) = {total_roll}")
+            
+        damage = stat + (total_roll * 2.5)
+
+    if armor_broken:
+        damage *= 1.5
+        armor_broken = False
+        print("Armor Breaker bonus applied!")
+
+    return damage, mana, armor_broken, enemy_stunned, bleed_timer, bleed_val, fled
+
+def execute_enemy_turn(hp, enemy_hp, enemy_stunned, bleed_timer, bleed_val, enemy_atk_power, dodge_bonus):
+    if bleed_timer > 0:
+        enemy_hp -= bleed_val
+        bleed_timer -= 1
+        print(f"Bleed deals {bleed_val}. Enemy HP: {enemy_hp}")
+
+    if enemy_hp <= 0:
+        return hp, enemy_hp, False, bleed_timer
+
+    if enemy_stunned:
+        print("The enemy is stunned and skips their turn!")
+        enemy_stunned = False
+    else:
+        try:
+            dodge = int(input("Enemy attacks! Dodge Roll: "))
+        except ValueError:
+            dodge = 1
+            
+        total_dodge = dodge + dodge_bonus
+        if dodge_bonus > 0:
+            print(f"Dodge Roll: {dodge} (+{dodge_bonus} Rogue Bonus) = {total_dodge}")
+            
+        damage_taken = enemy_atk_power if total_dodge < 4 else (enemy_atk_power // 5)
+        hp -= damage_taken
+        print(f"Your HP: {hp}")
+
+    return hp, enemy_hp, enemy_stunned, bleed_timer
+
+def battle_loop(role, stat, hp, max_hp, mana, enemy_name, enemy_hp, enemy_atk_power, atk_bonus, dodge_bonus, skill_unlocked, skill_upgraded):
+    armor_broken = False
+    enemy_stunned = False
+    active_bleed_timer = 0
+    active_bleed_val = 0
+    round_num = 1
+    
+    # Chapter 6: String Concatenation using '+' to smoothly attach symbols to data values
+    print("\n" + "⚔️"*3 + " " + role + " vs " + enemy_name + " (" + str(enemy_hp) + " HP) " + "⚔️"*3)
+    
+    while hp > 0 and enemy_hp > 0:
+        print(f"\n[ ROUND {round_num} ] {enemy_name}: {enemy_hp} | You: {hp}/{max_hp} | Mana: {mana}")
+        
+        damage, mana, armor_broken, enemy_stunned, b_timer, b_val, fled = execute_player_turn(
+            role, stat, mana, armor_broken, atk_bonus, skill_unlocked, skill_upgraded
+        )
+        
+        if fled:
+            print("🏃 You turned around and fled into the safety of the night!")
+            return hp, mana, False, True
+            
+        enemy_hp -= damage
+        print(f"You dealt {damage} damage.")
+        
+        if enemy_stunned:
+            enemy_stunned = True
+        if b_timer > 0:
+            active_bleed_timer = b_timer
+            active_bleed_val = b_val
+
+        if enemy_hp > 0:
+            hp, enemy_hp, enemy_stunned, active_bleed_timer = execute_enemy_turn(
+                hp, enemy_hp, enemy_stunned, active_bleed_timer, active_bleed_val, enemy_atk_power, dodge_bonus
+            )
+            
+        round_num += 1
+        
+    return hp, mana, enemy_hp <= 0, False
+
+# --- MAIN GAME PIPELINE USING ITERATIONS ---
+print("--- Welcome to the Progression Dungeon ---")
+
+role, hp_mult, stat = select_class()
+hp, mana = roll_stats(hp_mult)
+max_hp = hp
+
+atk_bonus = 0
+dodge_bonus = 0
+skill_unlocked = False
+skill_upgraded = False
+
+living_enemies = [
+    {"name": "DUNGEON WOLF", "hp": 35, "atk": 15},
+    {"name": "SHADOW GUARD", "hp": 45, "atk": 20},
+    {"name": "VOID BEHEMOTH", "hp": 75, "atk": 28}
+]
+
+floor = 1
+
+while living_enemies and hp > 0:
+    current_enemy = living_enemies[0]
+    
+    print("\n" + "="*40)
+    print(f"🚪 FLOOR {floor}: Approaching the {current_enemy['name']}!")
+    print("="*40)
+    
+    hp, mana, victory, player_fled = battle_loop(
+        role, stat, hp, max_hp, mana, 
+        current_enemy["name"], current_enemy["hp"], current_enemy["atk"], 
+        atk_bonus, dodge_bonus, skill_unlocked, skill_upgraded
+    )
+    
+    if player_fled:
+        print("\n" + "🏳️ RETREAT: You abandoned your quest. ".strip())
+        break
+        
+    if hp <= 0:
+        print(f"\n💀 DEFEAT: You were slain on Floor {floor} by the {current_enemy['name']}.")
+        break
+        
+    if victory:
+        print(f"\n🎉 SUCCESS: The {current_enemy['name']} has been purged!")
+        
+        living_enemies.pop(0) 
+        
+        if living_enemies:
+            stat, max_hp, mana, atk_bonus, dodge_bonus, skill_unlocked, skill_upgraded = handle_level_up(
+                role, stat, max_hp, mana, hp_mult, atk_bonus, dodge_bonus, skill_unlocked, skill_upgraded
+            )
+            hp = max_hp  
+            if floor == 2:
+                mana += 2  
+            floor += 1
+            continue 
+        else:
+            print("\n🏆 GRAND VICTORY: The Behemoth falls! You have cleared the dungeon!")
+
+print("\nFinis")
